@@ -1,6 +1,4 @@
 
-# A very simple Flask Hello World app for you to get started with...
-
 from flask import Flask, render_template, redirect, request, session
 from flask_sqlalchemy import SQLAlchemy
 import os
@@ -42,8 +40,7 @@ def login():
             comment = Comment(content=request.form["username"])
             db.session.add(comment)
             db.session.commit()
-            session['logged_in'] = True
-
         else:
+            session['logged_in'] = True
             return redirect('/')
     return render_template('login.html', error=error)
