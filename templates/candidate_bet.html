@@ -1,0 +1,14 @@
+<!doctype html>
+<title>Simple tables</title>
+<link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
+<div class=page>
+  <h1>How much do you want to bet on {{candidate}}?</h1>
+
+  <br>
+  <form action="" method="post">
+    <input type="number" placeholder="10" name="bet" value="{{
+      request.form.race_name }}">
+    <input class="btn btn-default" type="submit" value="Place Bet">
+  </form>
+
+</div>

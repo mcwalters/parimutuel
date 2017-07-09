@@ -2,12 +2,10 @@
 <title>Simple tables</title>
 <link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
 <div class=page>
-  <h1>Surfer groups</h1>
+  <h1>Select a Winner</h1>
   {% for table in tables %}
     <h2>{{titles[loop.index]}}</h2>
-    <a href="/races/{{race_name}}/{{table.candidate}}">
     {{ table|safe }}
-    </a>
   {% endfor %}
 
 
@@ -21,11 +19,6 @@
     <input class="btn btn-default" type="submit" value="Place Bet">
 
   </form>
-
-
-    {% if owner %}
-    <a href='/races/{{race_name}}/results'>Close to new bets</a>
-    {% endif %}
 
 
 </div>

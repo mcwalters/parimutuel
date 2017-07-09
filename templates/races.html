@@ -1,0 +1,21 @@
+<!doctype html>
+<title>Simple tables</title>
+<link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
+<div class=page>
+  <h1>Surfer groups</h1>
+  {% for table in tables %}
+    <h2>{{titles[loop.index]}}</h2>
+    <a href="/races/{{table}}">
+    {{ table|safe }}
+    </a>
+  {% endfor %}
+
+    <h4>Bet on New Race</h4>
+      <br>
+      <form action="" method="post">
+        <input type="text" placeholder="Race Name" name="race_name" value="{{
+          request.form.race_name }}">
+        <input class="btn btn-default" type="submit" value="Bet New Race">
+      </form>
+
+</div>
