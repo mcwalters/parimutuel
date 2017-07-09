@@ -3,22 +3,12 @@
 <link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
 <div class=page>
   <h1>Select a Winner</h1>
+
   {% for table in tables %}
     <h2>{{titles[loop.index]}}</h2>
+    <a href="/races/{{race_name}}/results/{{table.candidate}}">
     {{ table|safe }}
+    </a>
   {% endfor %}
-
-
-  <h4>Place New Bet</h4>
-  <br>
-  <form action="" method="post">
-    <input type="text" placeholder="Outcome" name="candidate" value="{{
-      request.form.race_name }}">
-    <input type="number" placeholder="10" name="bet" value="{{
-      request.form.race_name }}">
-    <input class="btn btn-default" type="submit" value="Place Bet">
-
-  </form>
-
 
 </div>

@@ -20,6 +20,9 @@ app.config["SQLALCHEMY_POOL_RECYCLE"] = 299
 
 db = SQLAlchemy(app)
 
+HOUSE_CUT = .018  # 1.8% is house take on each pot.
+HOUSE_USER = 'B'
+
 class BankRoll(db.Model):
     __tablename__ = "bank"
     id = db.Column(db.Integer, primary_key=True)
@@ -36,6 +39,26 @@ class Bet(db.Model):
     bet = db.Column(db.Numeric(13,2))
     payout = db.Column(db.Numeric(13,2))
 
+class Odds(db.Model):
+    """create or replace view candidate_odds as
+       select bets.race, candidate, ((pot *(1-0.018)) / sum(bet)) AS odds
+       from bets left join pot_totals
+         on bets.race = pot_totals.race
+       group by candidate, race;
+    """
+    __tablename__ = "candidate_odds"
+    race = db.Column(db.String(4096))
+    candidate = db.Column(db.String(4096), primary_key=True)
+    odds = db.Column(db.Numeric(13,2))
+
+class Pot(db.Model):
+    """create or replace view pot_totals as
+       select race, sum(bet) as pot
+       from bets group by race;
+    """
+    __tablename__ = "pot_totals"
+    race = db.Column(db.String(4096), primary_key=True)
+    pot = db.Column(db.Numeric(13,2))
 
 class Race(db.Model):
     __tablename__ = "races"
@@ -43,6 +66,7 @@ class Race(db.Model):
     race_name = db.Column(db.String(4096))
     owner = db.Column(db.String(4096))
     in_progress = db.Column(db.Boolean())
+    winner = db.Column(db.String(4096))
 
     def __repr__(self):
         return self.race_name
@@ -50,6 +74,12 @@ class Race(db.Model):
 
 @app.route('/races', methods=['GET', 'POST'])
 def race_list():
+    try:
+        if not session['logged_in']:
+            return redirect('/')
+    except:
+        return redirect('/')
+
     if request.method == 'POST':
         if not session['logged_in']:
             return redirect('/')
@@ -61,16 +91,40 @@ def race_list():
         return redirect('/races/'+request.form['race_name'])
 
     return render_template('races.html',tables=Race.query.filter_by(in_progress=True),
-                            titles = ['na','Races open for betting'])
+                           balance = BankRoll.query.filter_by(owner=session['Bettor']).first().balance,
+                           titles = ['na','Races open for betting'])
 
 @app.route('/races/<race_name>/results/<winner>', methods=['GET', 'POST'])
 def payout(race_name,winner):
+    try:
+        if not session['logged_in']:
+            return redirect('/')
+    except:
+        return redirect('/')
 
-    return
+    Race.query.filter_by(race_name=race_name).first().winner = winner
+
+    house = BankRoll.query.filter_by(owner=HOUSE_USER).first()
+    pot = Pot.query.filter_by(race=race_name).first().pot
+    house.balance = house.balance + (pot * Decimal(HOUSE_CUT))
+
+    odds = Odds.query.filter_by(candidate=winner).first().odds
+    for bet in Bet.query.filter_by(candidate=winner).all():
+        bet.payout = odds * bet.bet
+        bettor = BankRoll.query.filter_by(owner=bet.bettor).first()
+        bettor.balance = bettor.balance + bet.payout
+    db.session.commit()
+    return redirect('/races')
 
 
 @app.route('/races/<race_name>/results', methods=['GET', 'POST'])
 def race_results(race_name):
+    try:
+        if not session['logged_in']:
+            return redirect('/')
+    except:
+        return redirect('/')
+
     Race.query.filter_by(race_name=race_name).first().in_progress = False
     db.session.commit()
 
@@ -79,12 +133,17 @@ def race_results(race_name):
     odds = pd.read_sql_query(odds_query,db.engine)
     return render_template('results.html', tables=[x for x in odds.itertuples()],
                            titles = ['na', 'Odds places'],
+                           balance = BankRoll.query.filter_by(owner=session['Bettor']).first().balance,
+                           race_name=race_name,
                            owner = True if Race.query.filter_by(owner=session['Bettor'],
                                                                 race_name=race_name).first() else False)
 
 @app.route('/races/<race_name>', methods=['GET', 'POST'])
 def race_odds(race_name):
-    if not session['logged_in']:
+    try:
+        if not session['logged_in']:
+            return redirect('/')
+    except:
         return redirect('/')
 
     if request.method == 'POST':
@@ -107,6 +166,7 @@ def race_odds(race_name):
         return render_template('bets.html', tables=[x for x in odds.itertuples()],
                                titles = ['na', 'Odds places'],
                                race_name=race_name,
+                               balance = BankRoll.query.filter_by(owner=session['Bettor']).first().balance,
                                owner = True if Race.query.filter_by(owner=session['Bettor'],
                                                                     race_name=race_name).first() else False)
     else:
@@ -114,7 +174,10 @@ def race_odds(race_name):
 
 @app.route('/races/<race_name>/<candidate>', methods=['GET', 'POST'])
 def place_bet(race_name, candidate):
-    if not session['logged_in']:
+    try:
+        if not session['logged_in']:
+            return redirect('/')
+    except:
         return redirect('/')
 
     if request.method == 'POST':
@@ -131,6 +194,7 @@ def place_bet(race_name, candidate):
     return render_template('candidate_bet.html',
                            race_name=race_name,
                            candidate=candidate,
+                           balance = BankRoll.query.filter_by(owner=session['Bettor']).first().balance,
                            owner = True if Race.query.filter_by(owner=session['Bettor'],
                                                                 race_name=race_name).first() else False)
 
@@ -150,7 +214,6 @@ def login():
                 return redirect('/races')
             else:
                 error = 'Wrong password. Please try again.'
-                return render_template('login.html', error=error)
         else:
             session['logged_in'] = True
             session['Bettor'] = owner

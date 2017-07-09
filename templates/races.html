@@ -1,8 +1,18 @@
 <!doctype html>
+<html>
+<head>
+  <title>Bootstrap Example</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.0/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+</head>
+<Body>
 <title>Simple tables</title>
 <link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
 <div class=page>
-  <h1>Surfer groups</h1>
+  <h1>Races</h1>
   {% for table in tables %}
     <h2>{{titles[loop.index]}}</h2>
     <a href="/races/{{table}}">
@@ -10,7 +20,8 @@
     </a>
   {% endfor %}
 
-    <h4>Bet on New Race</h4>
+<h4>Bet on New Race</h4>
+  <h3>Your balance is currently {{balance}}</h3>
       <br>
       <form action="" method="post">
         <input type="text" placeholder="Race Name" name="race_name" value="{{
@@ -19,3 +30,5 @@
       </form>
 
 </div>
+</Body>
+</html>
