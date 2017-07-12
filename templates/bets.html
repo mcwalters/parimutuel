@@ -91,7 +91,9 @@ function getClosestFraction(value, tol) {
 
 
     var odds_formatting = function(decimal_odds) {
-        if (decimal_odds >= 1.1) {
+        if (Math.abs(decimal_odds -2) < .05){
+            return "Evens"
+        } else if (decimal_odds >= 1.1) {
             return getClosestFraction((Math.floor((decimal_odds- 1)*10)/10) , decimal_odds-1 >0.1 ? .05:.5)
         } else {
             return "Sure Thing"
