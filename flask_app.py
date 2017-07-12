@@ -1,5 +1,9 @@
-
+# Start with a basic flask app webpage.
+from flask_socketio import SocketIO, emit
 from flask import Flask, render_template, redirect, request, session
+from random import random
+from time import sleep
+from threading import Thread, Event
 from flask_sqlalchemy import SQLAlchemy
 from decimal import Decimal
 import pandas as pd
@@ -8,6 +12,7 @@ import os
 app = Flask(__name__)
 
 app.secret_key = os.urandom(12)
+__author__ = 'brendan'
 
 SQLALCHEMY_DATABASE_URI = "mysql+mysqlconnector://{username}:{password}@{hostname}/{databasename}".format(
     username="mcwalters",
@@ -19,6 +24,13 @@ app.config["SQLALCHEMY_DATABASE_URI"] = SQLALCHEMY_DATABASE_URI
 app.config["SQLALCHEMY_POOL_RECYCLE"] = 299
 
 db = SQLAlchemy(app)
+
+#turn the flask app into a socketio app
+socketio = SocketIO(app)
+
+#random number Generator Thread
+thread = Thread()
+thread_stop_event = Event()
 
 HOUSE_CUT = .018  # 1.8% is house take on each pot.
 HOUSE_USER = 'B'
@@ -136,7 +148,8 @@ def race_results(race_name):
                            balance = BankRoll.query.filter_by(owner=session['Bettor']).first().balance,
                            race_name=race_name,
                            owner = True if Race.query.filter_by(owner=session['Bettor'],
-                                                                race_name=race_name).first() or session['Bettor'] == HOUSE_USER else False)
+                                                                race_name=race_name).first()
+                                            or session['Bettor'] == HOUSE_USER else False)
 
 @app.route('/races/<race_name>', methods=['GET', 'POST'])
 def race_odds(race_name):
@@ -168,7 +181,8 @@ def race_odds(race_name):
                                race_name=race_name,
                                balance = BankRoll.query.filter_by(owner=session['Bettor']).first().balance,
                                owner = True if Race.query.filter_by(owner=session['Bettor'],
-                                                                    race_name=race_name).first() or session['Bettor'] == HOUSE_USER else False)
+                                                                    race_name=race_name).first()
+                                                or session['Bettor'] == HOUSE_USER else False)
     else:
         return redirect('/races')
 
@@ -196,7 +210,8 @@ def place_bet(race_name, candidate):
                            candidate=candidate,
                            balance = BankRoll.query.filter_by(owner=session['Bettor']).first().balance,
                            owner = True if Race.query.filter_by(owner=session['Bettor'],
-                                                                race_name=race_name).first() or session['Bettor'] == HOUSE_USER else False)
+                                                                race_name=race_name).first()
+                                        or session['Bettor'] == HOUSE_USER else False)
 
 
 
@@ -229,3 +244,48 @@ def login():
 # For development to reset the database
 #db.drop_all()
 #db.create_all()
+
+
+class RandomThread(Thread):
+    def __init__(self):
+        self.delay = 1
+        super(RandomThread, self).__init__()
+
+    def randomNumberGenerator(self):
+        """
+        Generate a random number every 1 second and emit to a socketio instance (broadcast)
+        Ideally to be run in a separate thread?
+        """
+        #infinite loop of magical random numbers
+        while not thread_stop_event.isSet():
+            number = round(random()*10, 3)
+            socketio.emit('newnumber', {'number': number}, namespace='/test')
+            sleep(self.delay)
+
+    def run(self):
+        self.randomNumberGenerator()
+
+
+@app.route('/leaderboard')
+def index():
+    #only by sending this page first will the client be connected to the socketio instance
+    return render_template('leaderboard.html')
+
+@socketio.on('connect', namespace='/test')
+def test_connect():
+    # need visibility of the global thread object
+    global thread
+    print('Client connected')
+
+    #Start the random number generator thread only if the thread has not been started before.
+    if not thread.isAlive():
+        thread = RandomThread()
+        thread.start()
+
+@socketio.on('disconnect', namespace='/test')
+def test_disconnect():
+    pass
+
+
+if __name__ == '__main__':
+    socketio.run(app)
