@@ -136,7 +136,7 @@ def race_results(race_name):
                            balance = BankRoll.query.filter_by(owner=session['Bettor']).first().balance,
                            race_name=race_name,
                            owner = True if Race.query.filter_by(owner=session['Bettor'],
-                                                                race_name=race_name).first() else False)
+                                                                race_name=race_name).first() or session['Bettor'] == HOUSE_USER else False)
 
 @app.route('/races/<race_name>', methods=['GET', 'POST'])
 def race_odds(race_name):
@@ -168,7 +168,7 @@ def race_odds(race_name):
                                race_name=race_name,
                                balance = BankRoll.query.filter_by(owner=session['Bettor']).first().balance,
                                owner = True if Race.query.filter_by(owner=session['Bettor'],
-                                                                    race_name=race_name).first() else False)
+                                                                    race_name=race_name).first() or session['Bettor'] == HOUSE_USER else False)
     else:
         return redirect('/races')
 
@@ -196,7 +196,7 @@ def place_bet(race_name, candidate):
                            candidate=candidate,
                            balance = BankRoll.query.filter_by(owner=session['Bettor']).first().balance,
                            owner = True if Race.query.filter_by(owner=session['Bettor'],
-                                                                race_name=race_name).first() else False)
+                                                                race_name=race_name).first() or session['Bettor'] == HOUSE_USER else False)
 
 
 

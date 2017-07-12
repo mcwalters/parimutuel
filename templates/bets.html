@@ -1,32 +1,107 @@
 <!doctype html>
-<title>Simple tables</title>
+<html>
+<head>
+  <title>{{race_name}}</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.0/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+</head>
+<Body>
 <link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
 <div class=page>
-  <h1>Surfer groups</h1>
-  {% for table in tables %}
-    <h2>{{titles[loop.index]}}</h2>
-    <a href="/races/{{race_name}}/{{table.candidate}}">
-    {{ table|safe }}
-    </a>
-  {% endfor %}
 
+  <div class="container">
+  <h1>{{race_name}}</h1>
+    <h5>Your balance is currently {{balance}}</h5>
 
-  <h4>Place New Bet</h4>
-  <h3>Your balance is currently {{balance}}</h3>
-  <br>
-  <form action="" method="post">
-    <input type="text" placeholder="Outcome" name="candidate" value="{{
-      request.form.race_name }}">
-    <input type="number" placeholder="10" name="bet" value="{{
-      request.form.race_name }}">
-    <input class="btn btn-default" type="submit" value="Place Bet">
+    <p>Click on a Candidate to place a bet.</p>
+</div>
+<br>
+  <div class="container">
+	<div class="row">
+        <table class="table table-striped table-hover ">
+            <thead>
+                <tr class="bg-primary">
+                    <th>Candidate</th>
+                    <th>Odds</th>
+                </tr>
+            </thead>
+            <tbody> <!-- para abrir em outra aba adicionar target="_blank" -->
 
-  </form>
+              {% for table in tables %}
+                <tr>
+                    <td>
+    <a href="/races/{{race_name}}/{{table.candidate}}">{{ table.candidate|safe }}</a>
+                    </td>
+                    <td>
+    <a href="/races/{{race_name}}/{{table.candidate}}" class="odds">{{ table.odds|safe }}</a>
+                    </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 
 
     {% if owner %}
+    <div class="container">
+    <h4>Handicap New Candidate</h4>
+    <form action="" method="post">
+    <input type="text" placeholder="Outcome" name="candidate" value="{{
+      request.form.race_name }}">
+    <input type="number" placeholder="0" name="bet" value="{{
+      request.form.race_name }}">
+    <input class="btn btn-default" type="submit" value="Place Bet">
+    </form>
     <a href='/races/{{race_name}}/results'>Close to new bets</a>
+    </div>
     {% endif %}
+<br>
 
+    <footer class="footer">
+      <div class="container">
+        <p class="text-muted"><a href='/races'>Back to Races</a></p>
+      </div>
+    </footer>
+
+
+<script>
+
+function getClosestFraction(value, tol) {
+    var original_value = value;
+    var iteration = 0;
+    var denominator=1, last_d = 0, numerator;
+    while (iteration < 20) {
+        value = 1 / (value - Math.floor(value))
+        var _d = denominator;
+        denominator = Math.floor(denominator * value + last_d);
+        last_d = _d;
+        numerator = Math.ceil(original_value * denominator)
+
+        if (Math.abs(numerator/denominator - original_value) < tol)
+            break;
+        iteration++;
+    }
+    return numerator + "/" + denominator;
+};
+
+
+
+    var odds_formatting = function(decimal_odds) {
+        return getClosestFraction(decimal_odds- 1 , .05)
+    };
+
+    var candidates = document.getElementsByClassName("odds");
+    for(var i = 0; i < candidates.length; i++)
+    {
+       candidates.item(i).innerHTML = odds_formatting(candidates.item(i).innerHTML);
+    };
+
+</script>
 
 </div>
+</body>
+</html>

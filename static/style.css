@@ -28,3 +28,5 @@ tr:nth-child(odd)		{ background-color:#eee; }
 tr:nth-child(even)	{ background-color:#fff; }
 
 tr:hover            { background-color: #ffff99;}
+
+.bg-primary { color: #377ba8; }

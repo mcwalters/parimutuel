@@ -1,14 +1,25 @@
 <!doctype html>
-<title>Simple tables</title>
+<html>
+<head>
+  <title>{{race_name}} Bet</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.0/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+</head>
+<Body>
 <link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
 <div class=page>
+<div class=container>
+
   <h1>How much do you want to bet on {{candidate}}?</h1>
 
   <br>
   <form action="" method="post">
-    <input type="number" placeholder="10" name="bet" value="{{
+    <input type="number" placeholder="0" name="bet" value="{{
       request.form.race_name }}">
     <input class="btn btn-default" type="submit" value="Place Bet">
   </form>
-
+</div>
 </div>
