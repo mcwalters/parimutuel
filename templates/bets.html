@@ -74,7 +74,7 @@ function getClosestFraction(value, tol) {
     var original_value = value;
     var iteration = 0;
     var denominator=1, last_d = 0, numerator;
-    while (iteration < 20) {
+    while (iteration < 34) {
         value = 1 / (value - Math.floor(value))
         var _d = denominator;
         denominator = Math.floor(denominator * value + last_d);
@@ -91,7 +91,11 @@ function getClosestFraction(value, tol) {
 
 
     var odds_formatting = function(decimal_odds) {
-        return getClosestFraction(decimal_odds- 1 , .05)
+        if (decimal_odds >= 1.1) {
+            return getClosestFraction((Math.floor((decimal_odds- 1)*10)/10) , decimal_odds-1 >0.1 ? .05:.5)
+        } else {
+            return "Sure Thing"
+        }
     };
 
     var candidates = document.getElementsByClassName("odds");
