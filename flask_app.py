@@ -3,6 +3,7 @@ from flask import Flask, render_template, redirect, request, session
 from flask_sqlalchemy import SQLAlchemy
 from decimal import Decimal
 import pandas as pd
+import datetime
 import os
 
 app = Flask(__name__)
@@ -20,7 +21,7 @@ app.config["SQLALCHEMY_POOL_RECYCLE"] = 299
 
 db = SQLAlchemy(app)
 
-HOUSE_CUT = .018  # 1.8% is house take on each pot.
+HOUSE_CUT = .015  # 1.8% is house take on each pot.
 HOUSE_USER = 'B'
 
 class BankRoll(db.Model):
@@ -68,9 +69,12 @@ class Race(db.Model):
     in_progress = db.Column(db.Boolean())
     winner = db.Column(db.String(4096))
 
-    def __repr__(self):
-        return self.race_name
-
+class History(db.Model):
+    __tablename__ = "history"
+    race_name = db.Column(db.String(4096), primary_key=True)
+    owner = db.Column(db.String(4096))
+    winner = db.Column(db.String(4096))
+    pot = db.Column(db.Numeric(13,2))
 
 @app.route('/races', methods=['GET', 'POST'])
 def race_list():
@@ -90,7 +94,7 @@ def race_list():
         db.session.commit()
         return redirect('/races/'+request.form['race_name'])
 
-    return render_template('races.html',tables=Race.query.filter_by(in_progress=True),
+    return render_template('races.html',tables=[r.race_name for r in Race.query.filter_by(in_progress=True).all()],
                            balance = BankRoll.query.filter_by(owner=session['Bettor']).first().balance,
                            titles = ['na','Races open for betting'])
 
@@ -102,17 +106,27 @@ def payout(race_name,winner):
     except:
         return redirect('/')
 
-    Race.query.filter_by(race_name=race_name).first().winner = winner
+    race = Race.query.filter_by(race_name=race_name).first()
+    race.in_progress = False
+    race.winner = winner
+    race.race_name = race.race_name + datetime.datetime.now().strftime("-%Y%m%d-%H%M%S")
+
+    pot = Pot.query.filter_by(race=race_name).first().pot
+    house = BankRoll.query.filter_by(owner=race.owner).first()
+    house.balance = house.balance + (pot * Decimal(HOUSE_CUT))
+    db.session.commit()
 
     house = BankRoll.query.filter_by(owner=HOUSE_USER).first()
-    pot = Pot.query.filter_by(race=race_name).first().pot
-    house.balance = house.balance + (pot * Decimal(HOUSE_CUT))
+    house.balance = house.balance + (pot * Decimal(0.003))
+    db.session.commit()
 
-    odds = Odds.query.filter_by(candidate=winner).first().odds
-    for bet in Bet.query.filter_by(candidate=winner).all():
+    odds = Odds.query.filter_by(candidate=winner, race=race_name).first().odds
+    for bet in Bet.query.filter_by(candidate=winner, race=race_name).all():
         bet.payout = odds * bet.bet
         bettor = BankRoll.query.filter_by(owner=bet.bettor).first()
         bettor.balance = bettor.balance + bet.payout
+    for bet in Bet.query.filter_by(race=race_name).all():
+        bet.race = bet.race + datetime.datetime.now().strftime("-%Y%m%d-%H%M%S")
     db.session.commit()
     return redirect('/races')
 
@@ -124,9 +138,6 @@ def race_results(race_name):
             return redirect('/')
     except:
         return redirect('/')
-
-    Race.query.filter_by(race_name=race_name).first().in_progress = False
-    db.session.commit()
 
     odds_query = """select candidate, odds from candidate_odds
                     where race = '{race}' """.format(race=race_name)
@@ -199,6 +210,20 @@ def place_bet(race_name, candidate):
                                                                 race_name=race_name).first() or session['Bettor'] == HOUSE_USER else False)
 
 
+
+@app.route('/leaderboard')
+def leaderboard():
+        return render_template('leaderboard.html',
+                               title= "Leaderboard",
+                               columns = "Bettor Balance".split(),
+                               tables=[[b.owner, b.balance] for b in BankRoll.query.order_by("balance desc").all()])
+
+@app.route('/history')
+def history():
+        return render_template('leaderboard.html',
+                               title= "History",
+                               columns = "Underwriter Race Winner Pot".split(),
+                               tables=[[h.owner, h.race_name, h.winner, h.pot] for h in History.query.all()])
 
 # route for handling the login page logic
 @app.route('/', methods=['GET', 'POST'])

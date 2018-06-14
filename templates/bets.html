@@ -3,6 +3,7 @@
 <head>
   <title>{{race_name}}</title>
   <meta charset="utf-8">
+    <meta http-equiv="refresh" content="10">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.0/jquery.min.js"></script>
@@ -51,9 +52,9 @@
     <h4>Handicap New Candidate</h4>
     <form action="" method="post">
     <input type="text" placeholder="Outcome" name="candidate" value="{{
-      request.form.race_name }}">
-    <input type="number" placeholder="0" name="bet" value="{{
-      request.form.race_name }}">
+      request.form.race_name }}" required>
+    <input type="number" placeholder="0" name="bet" min="1" max="1000" value="{{
+      request.form.race_name }}" required>
     <input class="btn btn-default" type="submit" value="Place Bet">
     </form>
     <a href='/races/{{race_name}}/results'>Close to new bets</a>
@@ -74,14 +75,16 @@ function getClosestFraction(value, tol) {
     var original_value = value;
     var iteration = 0;
     var denominator=1, last_d = 0, numerator;
-    while (iteration < 34) {
+    while (iteration < 20) {
         value = 1 / (value - Math.floor(value))
         var _d = denominator;
         denominator = Math.floor(denominator * value + last_d);
         last_d = _d;
         numerator = Math.ceil(original_value * denominator)
 
-        if (Math.abs(numerator/denominator - original_value) < tol)
+        if (Math.abs(numerator/denominator - original_value) <= tol)
+            if (denominator >3000)
+                continue;
             break;
         iteration++;
     }
@@ -91,12 +94,14 @@ function getClosestFraction(value, tol) {
 
 
     var odds_formatting = function(decimal_odds) {
-        if (Math.abs(decimal_odds -2) < .05){
+        if (decimal_odds > 5) {
+            return Math.floor(decimal_odds - 1) + "/1"
+        } else if(Math.abs(decimal_odds -2) < .05){
             return "Evens"
-        } else if (decimal_odds >= 1.1) {
-            return getClosestFraction((Math.floor((decimal_odds- 1)*10)/10) , decimal_odds-1 >0.1 ? .05:.5)
+        } else if (decimal_odds >= 1.01) {
+            return getClosestFraction((Math.floor((decimal_odds- 1)*100)/100) , .01)
         } else {
-            return "Sure Thing"
+              return "Sure Thing"
         }
     };
 

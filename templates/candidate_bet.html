@@ -17,8 +17,8 @@
 
   <br>
   <form action="" method="post">
-    <input type="number" placeholder="0" name="bet" value="{{
-      request.form.race_name }}">
+    <input type="number" placeholder="0" name="bet" min="1" max="1000" value="{{
+      request.form.race_name }}" required>
     <input class="btn btn-default" type="submit" value="Place Bet">
   </form>
 </div>
